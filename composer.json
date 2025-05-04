@@ -1,0 +1,28 @@
+{
+    "name": "microurl/url-shortener",
+    "description": "Um encurtador de URLs simples e eficiente",
+    "type": "project",
+    "require": {
+        "php": ">=8.4",
+        "ext-json": "*",
+        "ext-redis": "*",
+        "symfony/var-dumper": "^7.2",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "MicroUrl\\": "src/"
+        }
+    },
+    "scripts": {
+        "start": "php -S localhost:8002 -t public",
+        "start:prod": "php -S localhost:8002 -t public -d display_errors=0 -d error_reporting=0",
+        "test": "phpunit"
+    },
+    "authors": [
+        {
+            "name": "MicroUrl Team"
+        }
+    ],
+    "minimum-stability": "stable"
+}
