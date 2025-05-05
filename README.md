@@ -180,7 +180,7 @@ curl -L http://localhost:8000/ABC123XY
 
 ```javascript
 // Criar URL curta
-const response = await fetch('http://localhost:8000/api/', {
+const response = await fetch('http://localhost:8000/api/micro-url', {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json'
