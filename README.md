@@ -30,132 +30,21 @@ cp .env.example .env
 4. Inicie o servidor:
 ```bash
 composer start
+
+# Produção
+composer start:prod
 ```
+## API
 
-## Endpoints da API
+### Endpoints
 
-### 1. Criar URL Curta
+- `POST /api/micro-url` - Criar URL encurtada
+- `GET /api/micro-url/{shortCode}` - Obter informações da URL
+- `GET /{shortCode}` - Redirecionamento
 
-Cria uma nova URL curta.
+Veja a documentação completa em [docs/API.md](docs/API.md)
 
-```http
-POST /api/micro-url
-```
-
-#### Request Body
-```json
-{
-    "url": "https://exemplo.com",
-}
-```
-
-#### Resposta de Sucesso (201 Created)
-```json
-{
-    "success": true,
-    "message": "URL encurtada com sucesso",
-    "data": {
-        "original_url": "https://exemplo.com",
-        "short_code": "ABC123XY",
-        "short_url": "http://localhost:8000/ABC123XY",
-        "visits": 0,
-        "created_at": "2024-03-20 10:30:00",
-        "expires_at": "2024-12-31 23:59:59"
-    }
-}
-```
-
-#### Resposta de Erro (400 Bad Request)
-```json
-{
-    "success": false,
-    "message": "Erro de validação",
-    "errors": {
-        "url": "URL inválida"
-    }
-}
-```
-
-### 2. Obter Informações da URL
-
-Retorna informações sobre uma URL curta.
-
-```http
-GET /api/{short_code}
-```
-
-#### Resposta de Sucesso (200 OK)
-```json
-{
-    "success": true,
-    "message": "URL encontrada",
-    "data": {
-        "original_url": "https://exemplo.com",
-        "short_code": "ABC123XY",
-        "short_url": "http://localhost:8000/ABC123XY",
-        "visits": 42,
-        "created_at": "2024-03-20 10:30:00",
-        "expires_at": "2024-12-31 23:59:59"
-    }
-}
-```
-
-#### Resposta de Erro (404 Not Found)
-```json
-{
-    "success": false,
-    "message": "URL não encontrada"
-}
-```
-
-### 3. Redirecionamento
-
-Redireciona para a URL original.
-
-```http
-GET /{short_code}
-```
-
-#### Resposta
-- Redirecionamento 302 para a URL original
-- Se a URL expirou, retorna 410 Gone
-- Se a URL não existe, retorna 404 Not Found
-
-## Códigos de Status
-
-- `200 OK`: Requisição bem-sucedida
-- `201 Created`: Recurso criado com sucesso
-- `400 Bad Request`: Erro de validação
-- `404 Not Found`: Recurso não encontrado
-- `410 Gone`: URL expirada
-- `429 Too Many Requests`: Limite de requisições excedido
-- `500 Internal Server Error`: Erro interno do servidor
-
-## Estrutura de Dados
-
-### URL
-```json
-{
-    "original_url": "string",
-    "short_code": "string",
-    "visits": "integer",
-    "created_at": "timestamp",
-    "expires_at": "timestamp"
-}
-```
-
-## Configuração
-
-### Variáveis de Ambiente
-```env
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_DATABASE=0
-REDIS_PREFIX=url:
-REDIS_DEFAULT_TTL=2592000
-```
-
-## Exemplos de Uso
+## Exemplo de Uso
 
 ### cURL
 
