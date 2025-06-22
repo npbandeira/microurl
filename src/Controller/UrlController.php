@@ -3,59 +3,37 @@ declare(strict_types=1);
 
 namespace MicroUrl\Controller;
 
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
 use MicroUrl\Model\Url;
 use MicroUrl\View\JsonResponse;
 
 class UrlController
 {
-    private $urlModel;
+    private Url $urlModel;
 
-    public function __construct()
+    public function __construct(Url $urlModel)
     {
-        $this->urlModel = new Url();
+        $this->urlModel = $urlModel;
     }
 
-    public function handleRequest(): void
+    public function createShortUrl(Request $request, Response $response): Response
     {
-        $method = $_SERVER['REQUEST_METHOD'];
-        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        $path = trim($path, '/');
-        // Remove o prefixo 'api' da URL
-        if (strpos($path, 'api/') === 0) {
-            $path = substr($path, 4);
-        }
-        switch ($method) {
-            case 'POST':
-                $this->createShortUrl();
-                break;
-            case 'GET':
-                if (empty($path)) {
-                    JsonResponse::error('Código da URL não fornecido', 400);
-                }
-                $this->getUrlInfo($path);
-                break;
-            default:
-                JsonResponse::methodNotAllowed();
-        }
-    }
-
-    private function createShortUrl(): void
-    {
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = $request->getParsedBody();
 
         if (!isset($input['url'])) {
-            JsonResponse::validationError(['url' => 'A URL é obrigatória']);
+            return JsonResponse::validationError($response, ['url' => 'A URL é obrigatória']);
         }
 
         $url = $input['url'];
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            JsonResponse::validationError(['url' => 'URL inválida']);
+            return JsonResponse::validationError($response, ['url' => 'URL inválida']);
         }
 
         // Verifica se a URL já existe
         $existingUrl = $this->urlModel->findByOriginalUrl($url);
         if ($existingUrl) {
-            JsonResponse::success('URL já encurtada', [
+            return JsonResponse::success($response, 'URL já encurtada', [
                 'original_url' => $existingUrl['original_url'],
                 'short_code' => $existingUrl['short_code'],
                 'short_url' => $this->getShortUrl($existingUrl['short_code']),
@@ -74,14 +52,14 @@ class UrlController
         if (isset($input['expires_at'])) {
             $expiresAt = strtotime($input['expires_at']);
             if ($expiresAt === false || $expiresAt < time()) {
-                JsonResponse::validationError(['expires_at' => 'Data de expiração inválida']);
+                return JsonResponse::validationError($response, ['expires_at' => 'Data de expiração inválida']);
             }
             $data['expires_at'] = $expiresAt;
         }
 
         $url = $this->urlModel->create($data);
 
-        JsonResponse::created('URL encurtada com sucesso', [
+        return JsonResponse::created($response, 'URL encurtada com sucesso', [
             'original_url' => $url['original_url'],
             'short_code' => $url['short_code'],
             'short_url' => $this->getShortUrl($url['short_code']),
@@ -91,15 +69,21 @@ class UrlController
         ]);
     }
 
-    private function getUrlInfo(string $shortCode): void
+    public function getUrlInfo(Request $request, Response $response, array $args): Response
     {
+        $shortCode = $args['shortCode'] ?? '';
+
+        if (empty($shortCode)) {
+            return JsonResponse::error($response, 'Código da URL não fornecido', 400);
+        }
+
         $url = $this->urlModel->findByShortCode($shortCode);
 
         if (!$url) {
-            JsonResponse::notFound('URL não encontrada');
+            return JsonResponse::notFound($response, 'URL não encontrada');
         }
 
-        JsonResponse::success('URL encontrada', [
+        return JsonResponse::success($response, 'URL encontrada', [
             'original_url' => $url['original_url'],
             'short_code' => $url['short_code'],
             'short_url' => $this->getShortUrl($url['short_code']),

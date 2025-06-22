@@ -4,114 +4,34 @@ namespace MicroUrl\Model;
 
 use MicroUrl\Database;
 use Exception;
+use MicroUrl\Repository\Url\UrlRepositoryInterface;
 
 class Url
 {
-    private $redis;
-    private $prefix;
+    private UrlRepositoryInterface $repository;
 
-    public function __construct()
+    public function __construct(UrlRepositoryInterface $repository)
     {
-        $db = Database::getInstance();
-        $this->redis = $db->getRedis();
-        $this->prefix = $db->getPrefix();
+        $this->repository = $repository;
     }
 
     public function findByOriginalUrl(string $originalUrl): ?array
     {
-        $key = 'url:' . md5($originalUrl);
-        $data = $this->redis->get($key);
-        return $data ?: null;
+        return $this->repository->findByOriginalUrl($originalUrl);
     }
 
     public function findByShortCode(string $shortCode): ?array
     {
-        $key = 'code:' . $shortCode;
-        $data = $this->redis->get($key);
-
-        if (!$data) {
-            return null;
-        }
-
-        // Verifica expiração
-        if (isset($data['expires_at']) && $data['expires_at'] < time()) {
-            $this->redis->del($key);
-            return null;
-        }
-
-        return $data;
+        return $this->repository->findByShortCode($shortCode);
     }
 
     public function create(array $data): array
     {
-        $shortCode = $this->generateUniqueCode();
-        $data['short_code'] = $shortCode;
-        $data['created_at'] = time();
-        $data['visits'] = 0;
-
-        // Define expiração padrão se não especificada
-        if (!isset($data['expires_at'])) {
-            $data['expires_at'] = time() + Database::getInstance()->getDefaultTtl();
-        }
-
-        $ttl = $data['expires_at'] - time();
-
-        // Salva URL original
-        $urlKey = 'url:' . md5($data['original_url']);
-        $this->redis->set($urlKey, $data);
-        $this->redis->expire($urlKey, $ttl);
-
-        // Salva código curto
-        $codeKey = 'code:' . $shortCode;
-        $this->redis->set($codeKey, $data);
-        $this->redis->expire($codeKey, $ttl);
-
-        // Retorna os dados salvos no Redis
-        return $this->findByShortCode($shortCode);
+        return $this->repository->create($data);
     }
 
     public function incrementVisits(string $shortCode): bool
     {
-        $key = 'code:' . $shortCode;
-
-        // Busca os dados atuais
-        $data = $this->redis->get($key);
-        if (!$data) {
-            return false;
-        }
-
-        // Incrementa o contador de visitas
-        $data['visits']++;
-
-        // Atualiza os dados no Redis para ambas as chaves
-        $this->redis->set($key, $data);
-
-        // Atualiza também a chave da URL original
-        $urlKey = 'url:' . md5($data['original_url']);
-        $this->redis->set($urlKey, $data);
-
-        return true;
-    }
-
-    public function generateUniqueCode(): string
-    {
-        do {
-            $code = $this->generateCode();
-            $exists = $this->redis->exists('code:' . $code);
-        } while ($exists);
-
-        return $code;
-    }
-
-    private function generateCode(int $length = 8): string
-    {
-        $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $code = '';
-
-        for ($i = 0; $i < $length; $i++) {
-            $code .= $chars[random_int(0, strlen($chars) - 1)];
-        }
-
-        return $code;
+        return $this->repository->incrementVisits($shortCode);
     }
 }

@@ -1,42 +1,19 @@
 <?php
+declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../config/env.php';
 
-use MicroUrl\Controller\UrlController;
-use MicroUrl\Controller\RedirectController;
-use MicroUrl\View\JsonResponse;
+use DI\ContainerBuilder;
 
-// Configuração de timezone
-date_default_timezone_set('America/Manaus');
+// Configuração do container de dependências
+$containerBuilder = new ContainerBuilder();
+$containerBuilder->addDefinitions(require __DIR__ . '/../config/container.php');
+$container = $containerBuilder->build();
 
-// Tratamento de requisições OPTIONS (CORS preflight)
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+// Cria a aplicação Slim
+$app = (require __DIR__ . '/../config/app.php')($container);
 
-try {
-    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    $path = trim($path, '/');
+// Carrega as rotas
+(require __DIR__ . '/../route/routes.php')($app);
 
-    // Rota para redirecionamento
-    if (preg_match('/^[a-zA-Z0-9]{8}$/', $path)) {
-        $controller = new RedirectController();
-        $controller->handle($path);
-        exit;
-    }
-
-    // Rota para API
-    if (strpos($path, 'api/micro-url') === 0) {
-        $controller = new UrlController();
-        $controller->handleRequest();
-        exit;
-    }
-
-    // Rota não encontrada
-    JsonResponse::notFound('Endpoint não encontrado');
-
-} catch (Exception $e) {
-    JsonResponse::serverError('Erro interno do servidor');
-}
+$app->run();

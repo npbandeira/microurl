@@ -1,18 +1,30 @@
-# MicroUrl - API de Encurtamento de URLs
+# MicroUrl - Encurtador de URLs
 
-API de encurtamento de URLs com alta performance usando Redis para armazenamento.
+Um encurtador de URLs simples e eficiente construído com PHP Slim Framework seguindo padrões MVC.
+
+## Características
+
+- ✅ Framework Slim 4 com PSR-7
+- ✅ Arquitetura MVC
+- ✅ Container de dependências (PHP-DI)
+- ✅ Redis como banco de dados
+- ✅ Validação de dados
+- ✅ Respostas JSON padronizadas
+- ✅ Middleware de CORS
+- ✅ Tratamento de erros
+- ✅ Documentação da API
 
 ## Requisitos
 
-- PHP 8.4 ou superior
-- Redis 7.2 ou superior
+- PHP 8.4+
+- Redis
 - Composer
 
 ## Instalação
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/microurl.git
+git clone <repository-url>
 cd microurl
 ```
 
@@ -21,194 +33,109 @@ cd microurl
 composer install
 ```
 
-3. Configure o Redis:
+3. Configure o ambiente:
 ```bash
 cp .env.example .env
 # Edite o arquivo .env com suas configurações
 ```
 
-4. Inicie o servidor:
+4. Inicie o Redis:
 ```bash
+redis-server
+```
+
+5. Execute a aplicação:
+```bash
+# Desenvolvimento
 composer start
+
+# Produção
+composer start:prod
 ```
 
-## Endpoints da API
+## Estrutura do Projeto
 
-### 1. Criar URL Curta
-
-Cria uma nova URL curta.
-
-```http
-POST /api/micro-url
+```
+microurl/
+├── config/           # Configurações
+│   ├── app.php      # Configuração do Slim
+│   ├── container.php # Container de dependências
+│   └── env.php      # Variáveis de ambiente
+├── src/
+│   ├── Controller/  # Controladores
+│   │   ├── UrlController.php
+│   │   └── RedirectController.php
+│   ├── Model/       # Modelos
+│   │   └── Url.php
+│   ├── View/        # Views/Respostas
+│   │   └── JsonResponse.php
+│   └── Middleware/  # Middlewares
+│       └── ValidationMiddleware.php
+├── route/           # Definição de rotas
+│   └── routes.php
+├── public/          # Ponto de entrada
+│   └── index.php
+├── docs/            # Documentação
+│   └── API.md
+├── docker/          # Configurações Docker
+├── composer.json
+└── README.md
 ```
 
-#### Request Body
-```json
-{
-    "url": "https://exemplo.com",
-}
-```
+## API
 
-#### Resposta de Sucesso (201 Created)
-```json
-{
-    "success": true,
-    "message": "URL encurtada com sucesso",
-    "data": {
-        "original_url": "https://exemplo.com",
-        "short_code": "ABC123XY",
-        "short_url": "http://localhost:8000/ABC123XY",
-        "visits": 0,
-        "created_at": "2024-03-20 10:30:00",
-        "expires_at": "2024-12-31 23:59:59"
-    }
-}
-```
+### Endpoints
 
-#### Resposta de Erro (400 Bad Request)
-```json
-{
-    "success": false,
-    "message": "Erro de validação",
-    "errors": {
-        "url": "URL inválida"
-    }
-}
-```
+- `POST /api/micro-url` - Criar URL encurtada
+- `GET /api/micro-url/{shortCode}` - Obter informações da URL
+- `GET /{shortCode}` - Redirecionamento
 
-### 2. Obter Informações da URL
+Veja a documentação completa em [docs/API.md](docs/API.md)
 
-Retorna informações sobre uma URL curta.
+## Exemplo de Uso
 
-```http
-GET /api/{short_code}
-```
-
-#### Resposta de Sucesso (200 OK)
-```json
-{
-    "success": true,
-    "message": "URL encontrada",
-    "data": {
-        "original_url": "https://exemplo.com",
-        "short_code": "ABC123XY",
-        "short_url": "http://localhost:8000/ABC123XY",
-        "visits": 42,
-        "created_at": "2024-03-20 10:30:00",
-        "expires_at": "2024-12-31 23:59:59"
-    }
-}
-```
-
-#### Resposta de Erro (404 Not Found)
-```json
-{
-    "success": false,
-    "message": "URL não encontrada"
-}
-```
-
-### 3. Redirecionamento
-
-Redireciona para a URL original.
-
-```http
-GET /{short_code}
-```
-
-#### Resposta
-- Redirecionamento 302 para a URL original
-- Se a URL expirou, retorna 410 Gone
-- Se a URL não existe, retorna 404 Not Found
-
-## Códigos de Status
-
-- `200 OK`: Requisição bem-sucedida
-- `201 Created`: Recurso criado com sucesso
-- `400 Bad Request`: Erro de validação
-- `404 Not Found`: Recurso não encontrado
-- `410 Gone`: URL expirada
-- `429 Too Many Requests`: Limite de requisições excedido
-- `500 Internal Server Error`: Erro interno do servidor
-
-## Estrutura de Dados
-
-### URL
-```json
-{
-    "original_url": "string",
-    "short_code": "string",
-    "visits": "integer",
-    "created_at": "timestamp",
-    "expires_at": "timestamp"
-}
-```
-
-## Configuração
-
-### Variáveis de Ambiente
-```env
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_DATABASE=0
-REDIS_PREFIX=url:
-REDIS_DEFAULT_TTL=2592000
-```
-
-## Exemplos de Uso
-
-### cURL
-
-1. Criar URL curta:
+### Criar URL Encurtada
 ```bash
-curl -X POST http://localhost:8000/api/ \
+curl -X POST http://localhost:8002/api/micro-url \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://exemplo.com"}'
+  -d '{"url": "https://exemplo.com/url-muito-longa"}'
 ```
 
-2. Obter informações:
+### Acessar URL Encurtada
 ```bash
-curl http://localhost:8000/api/ABC123XY
+curl http://localhost:8002/aB3cD4eF
 ```
 
-3. Acessar URL curta:
+## Desenvolvimento
+
+### Executar testes
 ```bash
-curl -L http://localhost:8000/ABC123XY
+composer test
 ```
 
-### JavaScript (Fetch)
+### Estrutura MVC
 
-```javascript
-// Criar URL curta
-const response = await fetch('http://localhost:8000/api/micro-url', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-        url: 'https://exemplo.com'
-    })
-});
+O projeto segue o padrão MVC (Model-View-Controller):
 
-const data = await response.json();
+- **Models**: Lógica de negócio e acesso a dados
+- **Views**: Respostas JSON padronizadas
+- **Controllers**: Manipulação de requisições e respostas
+- **Middleware**: Validação e processamento de requisições
+
+### Adicionando Novas Rotas
+
+1. Adicione a rota em `route/routes.php`
+2. Crie o controller correspondente em `src/Controller/`
+3. Se necessário, crie o model em `src/Model/`
+
+## Docker
+
+Para executar com Docker:
+
+```bash
+docker-compose up -d
 ```
 
-## Limitações
+## Licença
 
-- URLs expiram após 30 dias por padrão
-- Códigos curtos têm 8 caracteres
-- URLs devem começar com http:// ou https://
-
-## Segurança
-
-- Validação de URLs
-- Proteção contra XSS
-- Headers de segurança configurados
-- Expiração automática de URLs
-
-## Performance
-
-- Armazenamento em Redis
-- Cache de URLs mais acessadas
-- Incremento atômico de visitas
-- Validação eficiente de códigos únicos 
+MIT 
